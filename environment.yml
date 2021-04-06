@@ -1,0 +1,10 @@
+name: MSE482
+channels:
+  - conda-forge
+dependencies:
+  - python=3.6.1
+  - rdkit
+  - numpy
+  - pandas
+  - scikit-learn=0.21
+  - forestci
