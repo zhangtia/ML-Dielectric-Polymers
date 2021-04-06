@@ -2,16 +2,9 @@
 ## _Machine Informatics to Predict Polymer Properties_
 
 
-Dillinger is a cloud-enabled, mobile-ready, offline-storage compatible,
-AngularJS-powered HTML5 Markdown editor.
-
-- Type some Markdown on the left
-- See HTML in the right
-- ✨Magic ✨
-
 ## Quickstart
 
-Dillinger requires [Python Anaconda](https://www.anaconda.com/products/individual) to run.
+Machine learning model requires [Python Anaconda](https://www.anaconda.com/products/individual) to run.
 
 If you are starting over, delete the previous virtual envrionment.
 
@@ -38,8 +31,8 @@ Don't forget to exit out of the environment.
 ```sh
 conda deactivate
 ```
-# ===== EVERYTHING BELOW THIS IS FROM A TEMPLATE =====
-# ===== FOR NOW, PLEASE IGNORE =====
+# ==EVERYTHING BELOW IS FROM A TEMPLATE==
+# ==FOR NOW, PLEASE IGNORE==
 
 ## Features
 
