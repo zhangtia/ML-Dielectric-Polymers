@@ -1,7 +1,10 @@
-from itertools import permutations, combinations
+import pandas as pd
 import numpy as np
-
-# This file contains functions to make the design space
+import forestci
+from itertools import permutations, combinations
+import featurize_monomers
+import scipy.stats as stats
+from core_model import get_models
 
 def block_to_smiles(block):
     """ Convert the formula of a block to a SMILES string """
@@ -69,3 +72,47 @@ def get_new_SMILES(known_SMILES, blocks, n_permutations):
                 new_blocks.append('-'.join(molecule))
     return new_SMILES, new_blocks
 
+
+feature_strings = featurize_monomers.get_feature_strings()
+band_gap, dielectric_constant = get_models(plot=False)
+band_gap_model = band_gap.model
+dielectric_constant_model = dielectric_constant.model
+
+known_SMILES = list(df["SMILES"]) # Get list of SMILES strings we already have
+blocks = sorted(['CH2', 'C6H4', 'NH', 'CO', 'CS', 'C4H2S', 'O'])
+
+new_df = pd.DataFrame() # Create a new dataset of our predicted values
+SMILES_and_blocks = get_new_SMILES(known_SMILES, blocks, 4)
+new_df["SMILES"] = SMILES_and_blocks[0]
+new_df["4-block polymer"] = SMILES_and_blocks[1]
+featurize_monomers.featurize_dataset(new_df) # Featurize the new monomers
+new_feature_values = new_df[feature_strings].values # Get feature values
+
+# Get predictions for the new monomers
+predicted_bandgaps = band_gap_model.predict(new_feature_values)
+bandgap_var = forestci.random_forest_error(band_gap_model, feature_values1_train, new_feature_values)
+bandgap_std = np.sqrt(sum(bandgap_var) / len(bandgap_var)) # Get standard deviation
+
+predicted_dielectric_constants = dielectric_constant_model.predict(new_feature_values)
+dielectric_var = forestci.random_forest_error(dielectric_constant_model, feature_values2_train, new_feature_values)
+dielectric_std = np.sqrt(sum(dielectric_var) / len(dielectric_var)) # Get standard deviation
+
+new_df["Band Gap (eV)"] = predicted_bandgaps
+new_df["Band Gap Uncertainty (eV)"] = np.sqrt(bandgap_var)
+new_df["Total Dielectric Constant"] = predicted_dielectric_constants
+new_df["Total Dielectric Constant Uncertainty"] = np.sqrt(dielectric_var)
+
+
+def get_probability_of_improvement(row):
+    # get Z-scores: (x - mu) / sigma
+    Z_bandgap = (5 - row["Band Gap (eV)"]) / row["Band Gap Uncertainty (eV)"]
+    Z_dielectric = (5 - row["Total Dielectric Constant"]) / row["Total Dielectric Constant Uncertainty"]
+    # get p-values: 1 - area up to x
+    p_bandgap = 1 - stat.norm.cdf(Z_bandgap)
+    p_dielectric = 1 - stat.norm.cdf(Z_dielectric)
+    return p_dielectric * p_bandgap  # return joint probability
+
+# Get probability each monomer meets design goals
+new_df["Probability of Improvement"] = new_df.apply(get_probability_of_improvement, axis=1)
+new_df.sort_values("Probability of Improvement", axis=0, ascending=False, inplace=True)
+new_df.to_csv("new_4-block_monomers.csv") # Save values
